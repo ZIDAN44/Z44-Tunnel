@@ -1,0 +1,18 @@
+{
+  "server_addr": "YOUR_VPS_IP_HERE",
+  "tunnel_port": 49153,
+  "mappings": [
+    {
+      "remote_port": 8920,
+      "local_addr": "192.168.1.30:8920"
+    },
+    {
+      "remote_port": 3001,
+      "local_addr": "192.168.1.35:3000"
+    },
+    {
+      "remote_port": 8081,
+      "local_addr": "192.168.1.50:8080"
+    }
+  ]
+}
