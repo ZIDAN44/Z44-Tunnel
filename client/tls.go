@@ -25,5 +25,7 @@ func LoadTLSConfig(serverAddr string) (*tls.Config, error) {
 		Certificates: []tls.Certificate{cert},
 		RootCAs:      pool,
 		ServerName:   serverAddr,
+		MinVersion:   tls.VersionTLS12,
+		CipherSuites: common.GetSecureCipherSuites(),
 	}, nil
 }

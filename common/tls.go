@@ -30,3 +30,16 @@ func LoadCertKeyPair(certPath, keyPath string) (tls.Certificate, error) {
 	}
 	return cert, nil
 }
+
+// GetSecureCipherSuites returns a list of secure cipher suites for TLS 1.2
+// TLS 1.3 cipher suites are secure by default and not configurable
+func GetSecureCipherSuites() []uint16 {
+	return []uint16{
+		tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+		tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+		tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+		tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+		tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
+		tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
+	}
+}

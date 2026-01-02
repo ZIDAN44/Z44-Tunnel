@@ -22,8 +22,11 @@ func LoadTLSConfig() (*tls.Config, error) {
 	}
 
 	return &tls.Config{
-		Certificates: []tls.Certificate{cert},
-		ClientCAs:    caPool,
-		ClientAuth:   tls.RequireAndVerifyClientCert,
+		Certificates:             []tls.Certificate{cert},
+		ClientCAs:                caPool,
+		ClientAuth:               tls.RequireAndVerifyClientCert,
+		MinVersion:               tls.VersionTLS12,
+		CipherSuites:             common.GetSecureCipherSuites(),
+		PreferServerCipherSuites: true,
 	}, nil
 }
