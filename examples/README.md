@@ -5,13 +5,13 @@ This directory contains systemd service files for running Z44 Tunnel as a system
 ## Prerequisites
 
 - Linux system with systemd
-- Z44 Tunnel binaries built and installed to `/opt/z44/` (See the [Building](../readme.md#️-building) instructions)
+- Z44 Tunnel binaries built and installed to `/opt/z44/` (See the [Building](../README.md#️-building) instructions)
 - Certificates generated and placed in `/opt/z44/certs/`
-- Client configuration file at `/opt/z44/config.json` (for client setup)
+- Client configuration file at `/opt/z44/config.json` (for client setup - must be in the working directory)
 
 ## Certificate Generation
 
-Before setting up the services, you need to generate certificates. (See the [Certificate Generation](../readme.md#-certificate-generation) instructions)
+Before setting up the services, you need to generate certificates. (See the [Certificate Generation](../README.md#-certificate-generation) instructions)
 
 **Copy certificates to installation directory:**
 
@@ -38,6 +38,13 @@ sudo cp certs/*.pem /opt/z44/certs/
    sudo cp certs/ca.pem certs/client-cert.pem certs/client-key.pem /opt/z44/certs/
    ```
 
+   **Copy client configuration:**
+
+   ```bash
+   sudo cp client/config.json /opt/z44/config.json
+   sudo chmod 600 /opt/z44/config.json
+   ```
+
 2. **Copy the service file:**
 
    ```bash
@@ -52,6 +59,7 @@ sudo cp certs/*.pem /opt/z44/certs/
    sudo chmod +x /opt/z44/client
    sudo chmod 700 /opt/z44/certs
    sudo chmod 600 /opt/z44/certs/ca.pem /opt/z44/certs/client-cert.pem /opt/z44/certs/client-key.pem
+   sudo chmod 600 /opt/z44/config.json
    ```
 
 4. **Enable and start the service:**

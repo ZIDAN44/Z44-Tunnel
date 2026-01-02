@@ -63,11 +63,24 @@ This provides:
 ```bash
 .
 ├── client/
-│   ├── client.go       # Tunnel client (runs in private network)
-│   └── config.json     # Port mappings & server address
+│   ├── client.go       # Main entry point (tunnel client)
+│   ├── config.go       # Configuration loading & validation
+│   ├── config.json     # Port mappings & server address
+│   ├── stream.go       # Stream handling & data forwarding
+│   ├── tls.go          # TLS configuration for client
+│   └── tunnel.go       # Tunnel connection & yamux session
 │
 ├── server/
-│   └── server.go       # Tunnel server (runs on VPS)
+│   ├── server.go       # Main entry point & server state
+│   ├── handler.go       # Client connection handling
+│   ├── forward.go      # Port forwarding logic
+│   └── tls.go          # TLS configuration for server
+│
+├── common/
+│   ├── types.go        # Shared types (Mapping, Handshake)
+│   ├── tls.go          # Shared TLS utilities
+│   ├── pipe.go         # Bidirectional data piping
+│   └── utils.go        # Shared utilities (close functions, yamux config)
 │
 ├── utils/
 │   └── gen_certs.go    # Private CA + cert generation utility
@@ -86,9 +99,12 @@ This provides:
   "tunnel_port": 49153,
   "mappings": [
     {
-      "listen_port": 8920,
-      "target_host": "192.168.1.10",
-      "target_port": 8920
+      "remote_port": 8920,
+      "local_addr": "192.168.1.30:8920"
+    },
+    {
+      "remote_port": 3001,
+      "local_addr": "192.168.1.35:3000"
     }
   ]
 }
@@ -96,7 +112,8 @@ This provides:
 
 - `server_addr` must match the **SAN** in the server certificate
 - The client initiates the tunnel to `server_addr:tunnel_port`
-- `listen_port` is bound on the VPS **localhost only**
+- `remote_port` is the port bound on the VPS **localhost only** (127.0.0.1)
+- `local_addr` is the address of the local service to forward to (format: `host:port`)
 
 ---
 
@@ -141,16 +158,28 @@ GOOS=linux GOARCH=amd64 go build -o z44-server ./server
 ### On the VPS (server)
 
 ```bash
-go run server/server.go
+go run ./server
+```
+
+Or using the built binary:
+
+```bash
+./z44-server
 ```
 
 ### On the private machine (client)
 
 ```bash
-go run client/client.go
+go run ./client
 ```
 
-Once connected, services mapped in `config.json` become available on the VPS via `127.0.0.1:<listen_port>`.
+Or using the built binary:
+
+```bash
+./z44-client
+```
+
+Once connected, services mapped in `config.json` become available on the VPS via `127.0.0.1:<remote_port>`.
 
 ---
 
