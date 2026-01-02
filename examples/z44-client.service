@@ -1,0 +1,34 @@
+[Unit]
+Description=Z44 Tunnel Client
+After=network.target
+Wants=network.target
+
+# Never stop restarting due to rate limits
+StartLimitIntervalSec=0
+StartLimitBurst=0
+
+[Service]
+Type=simple
+User=z44
+Group=z44
+
+# REQUIRED for hard-coded certs/ paths (certs/...)
+WorkingDirectory=/opt/z44
+
+# Small delay to avoid boot race
+ExecStartPre=/bin/sleep 3
+ExecStart=/opt/z44/client
+
+# Always recover
+Restart=always
+RestartSec=2
+
+# Safe defaults
+NoNewPrivileges=true
+PrivateTmp=true
+
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
