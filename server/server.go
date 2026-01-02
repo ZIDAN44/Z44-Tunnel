@@ -19,9 +19,9 @@ import (
 const (
 	TunnelPort       = ":49153"
 	PingInterval     = 5 * time.Second
-	WriteTimeout     = 2 * time.Second
-	HandshakeTimeout = 3 * time.Second
-	KeepAlive        = 5 * time.Second
+	WriteTimeout     = 10 * time.Second
+	HandshakeTimeout = 10 * time.Second
+	KeepAlive        = 10 * time.Second
 )
 
 // --- State ---

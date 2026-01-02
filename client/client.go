@@ -18,10 +18,12 @@ import (
 
 // --- Configuration ---
 const (
-	RetryDelay   = 200 * time.Millisecond
-	DialTimeout  = 10 * time.Second
-	PingInterval = 5 * time.Second
-	WriteTimeout = 5 * time.Second
+	RetryDelay          = 200 * time.Millisecond
+	DialTimeout         = 10 * time.Second
+	TCPKeepAlive        = 10 * time.Second
+	PingInterval        = 5 * time.Second
+	WriteTimeout        = 10 * time.Second
+	LocalServiceTimeout = 10 * time.Second
 )
 
 type Config struct {
@@ -141,7 +143,7 @@ func handleStream(stream net.Conn) {
 	}
 
 	// Dial Local App
-	local, err := net.DialTimeout("tcp", localAddr, 5*time.Second)
+	local, err := net.DialTimeout("tcp", localAddr, LocalServiceTimeout)
 	if err != nil {
 		return
 	}
