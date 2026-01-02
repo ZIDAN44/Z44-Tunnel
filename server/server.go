@@ -15,11 +15,14 @@ import (
 
 // Server constants
 const (
-	TunnelPort       = ":49153"
-	PingInterval     = 5 * time.Second
-	WriteTimeout     = 10 * time.Second
-	HandshakeTimeout = 10 * time.Second
-	KeepAlive        = 10 * time.Second
+	TunnelPort           = ":49153"
+	PingInterval         = 5 * time.Second
+	WriteTimeout         = 10 * time.Second
+	HandshakeTimeout     = 10 * time.Second
+	KeepAlive            = 10 * time.Second
+	MaxConcurrentStreams = 1000                  // Maximum concurrent streams per session
+	StreamRateLimit      = 100                   // Maximum tokens in bucket
+	StreamRefillRate     = 10 * time.Millisecond // Refill rate (100 streams/sec max)
 )
 
 // TunnelServer manages the server state
@@ -27,12 +30,15 @@ type TunnelServer struct {
 	mu            sync.RWMutex
 	activeSession *yamux.Session
 	listeners     map[int]net.Listener
+	streamCount   int
+	rateLimiter   *common.RateLimiter
 }
 
 // NewTunnelServer creates a new tunnel server instance
 func NewTunnelServer() *TunnelServer {
 	return &TunnelServer{
-		listeners: make(map[int]net.Listener),
+		listeners:   make(map[int]net.Listener),
+		rateLimiter: common.NewRateLimiter(StreamRateLimit, StreamRefillRate),
 	}
 }
 
@@ -44,6 +50,7 @@ func (s *TunnelServer) SetActiveSession(session *yamux.Session) {
 		s.activeSession.Close()
 	}
 	s.activeSession = session
+	s.streamCount = 0
 }
 
 // GetActiveSession returns the active yamux session
@@ -59,6 +66,27 @@ func (s *TunnelServer) ClearActiveSession(session *yamux.Session) {
 	defer s.mu.Unlock()
 	if s.activeSession == session {
 		s.activeSession = nil
+		s.streamCount = 0
+	}
+}
+
+// IncrementStreamCount increments the stream count if under limit
+func (s *TunnelServer) IncrementStreamCount() bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.streamCount >= MaxConcurrentStreams {
+		return false
+	}
+	s.streamCount++
+	return true
+}
+
+// DecrementStreamCount decrements the stream count
+func (s *TunnelServer) DecrementStreamCount() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.streamCount > 0 {
+		s.streamCount--
 	}
 }
 

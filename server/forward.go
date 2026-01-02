@@ -34,14 +34,29 @@ func forwardLoop(ln net.Listener, port int, server *TunnelServer) {
 			continue
 		}
 
+		// Rate limiting: check token bucket and stream count
+		if !server.rateLimiter.Allow() {
+			log.Printf("Rate limit exceeded for port %d", port)
+			common.CloseConn(conn)
+			continue
+		}
+
+		if !server.IncrementStreamCount() {
+			log.Printf("Max concurrent streams reached for port %d", port)
+			common.CloseConn(conn)
+			continue
+		}
+
 		stream, err := sess.Open()
 		if err != nil {
+			server.DecrementStreamCount()
 			log.Printf("Failed to open stream port %d: %v", port, err)
 			common.CloseConn(conn)
 			continue
 		}
 
 		if _, err := fmt.Fprintf(stream, "%d\n", port); err != nil {
+			server.DecrementStreamCount()
 			common.CloseConn(conn)
 			common.CloseConn(stream)
 			continue
@@ -53,6 +68,7 @@ func forwardLoop(ln net.Listener, port int, server *TunnelServer) {
 		stream.SetReadDeadline(time.Time{})
 
 		if err != nil || n < 2 || string(buf[:2]) != "OK" {
+			server.DecrementStreamCount()
 			log.Printf("❌ Zombie detected port %d", port)
 			sess.Close()
 			common.CloseConn(conn)
@@ -66,6 +82,7 @@ func forwardLoop(ln net.Listener, port int, server *TunnelServer) {
 					log.Printf("Panic in pipe port %d: %v", port, r)
 				}
 			}()
+			defer server.DecrementStreamCount()
 			defer common.CloseConn(c)
 			defer common.CloseConn(s)
 			common.PipeConnections(c, s, "conn/stream")

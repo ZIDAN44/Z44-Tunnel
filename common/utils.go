@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"net"
+	"sync"
 	"time"
 
 	"github.com/hashicorp/yamux"
@@ -43,7 +44,53 @@ func YamuxConfig(keepAlive, writeTimeout time.Duration) *yamux.Config {
 	cfg.KeepAliveInterval = keepAlive
 	cfg.ConnectionWriteTimeout = writeTimeout
 	cfg.LogOutput = io.Discard
+	cfg.AcceptBacklog = 256 // Limit pending stream accepts
 	return cfg
+}
+
+// RateLimiter implements a token bucket rate limiter
+type RateLimiter struct {
+	mu         sync.Mutex
+	tokens     int
+	maxTokens  int
+	refillRate time.Duration
+	lastRefill time.Time
+}
+
+// NewRateLimiter creates a new rate limiter
+// maxTokens: maximum tokens in bucket
+// refillRate: time between token refills (1 token per refillRate)
+func NewRateLimiter(maxTokens int, refillRate time.Duration) *RateLimiter {
+	return &RateLimiter{
+		tokens:     maxTokens,
+		maxTokens:  maxTokens,
+		refillRate: refillRate,
+		lastRefill: time.Now(),
+	}
+}
+
+// Allow checks if a token is available and consumes it
+func (rl *RateLimiter) Allow() bool {
+	rl.mu.Lock()
+	defer rl.mu.Unlock()
+
+	now := time.Now()
+	elapsed := now.Sub(rl.lastRefill)
+
+	// Refill tokens based on elapsed time
+	if elapsed > 0 {
+		tokensToAdd := int(elapsed / rl.refillRate)
+		if tokensToAdd > 0 {
+			rl.tokens = min(rl.tokens+tokensToAdd, rl.maxTokens)
+			rl.lastRefill = rl.lastRefill.Add(time.Duration(tokensToAdd) * rl.refillRate)
+		}
+	}
+
+	if rl.tokens > 0 {
+		rl.tokens--
+		return true
+	}
+	return false
 }
 
 // SetKeepAlive sets TCP keepalive on a TLS connection
