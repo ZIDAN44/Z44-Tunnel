@@ -89,7 +89,7 @@ func (t *Tunnel) connect() {
 	for {
 		stream, err := session.Accept()
 		if err != nil {
-			if err != io.EOF {
+			if err != io.EOF && err.Error() != "keepalive timeout" {
 				log.Printf("Failed to accept stream: %v", err)
 			}
 			return

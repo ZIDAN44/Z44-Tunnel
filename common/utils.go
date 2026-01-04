@@ -5,16 +5,22 @@ import (
 	"io"
 	"log"
 	"net"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/hashicorp/yamux"
 )
 
+// isClosedError checks if error is from closing an already-closed connection
+func isClosedError(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "use of closed network connection")
+}
+
 // CloseConn safely closes a connection, logging errors
 func CloseConn(conn net.Conn) {
 	if conn != nil {
-		if err := conn.Close(); err != nil {
+		if err := conn.Close(); err != nil && !isClosedError(err) {
 			log.Printf("Warning: failed to close connection: %v", err)
 		}
 	}
@@ -32,7 +38,7 @@ func CloseListener(ln net.Listener) {
 // CloseSession safely closes a yamux session, logging errors
 func CloseSession(session interface{ Close() error }) {
 	if session != nil {
-		if err := session.Close(); err != nil {
+		if err := session.Close(); err != nil && !isClosedError(err) {
 			log.Printf("Warning: failed to close session: %v", err)
 		}
 	}

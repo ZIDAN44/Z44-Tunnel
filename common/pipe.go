@@ -4,7 +4,19 @@ import (
 	"io"
 	"log"
 	"net"
+	"strings"
 )
+
+// isExpectedConnectionError checks if error is expected during normal connection closure
+func isExpectedConnectionError(err error) bool {
+	if err == nil {
+		return false
+	}
+	s := err.Error()
+	return strings.Contains(s, "connection reset") ||
+		strings.Contains(s, "broken pipe") ||
+		strings.Contains(s, "use of closed network connection")
+}
 
 // PipeConnections pipes data bidirectionally between two connections
 // It handles panic recovery and proper error logging
@@ -20,7 +32,7 @@ func PipeConnections(src, dst net.Conn, label string) {
 			done <- struct{}{}
 		}()
 		_, err := io.Copy(dst, src)
-		if err != nil && err != io.EOF {
+		if err != nil && err != io.EOF && !isExpectedConnectionError(err) {
 			log.Printf("Error copying %s (src->dst): %v", label, err)
 		}
 	}()
@@ -34,7 +46,7 @@ func PipeConnections(src, dst net.Conn, label string) {
 			done <- struct{}{}
 		}()
 		_, err := io.Copy(src, dst)
-		if err != nil && err != io.EOF {
+		if err != nil && err != io.EOF && !isExpectedConnectionError(err) {
 			log.Printf("Error copying %s (dst->src): %v", label, err)
 		}
 	}()
